@@ -33,10 +33,8 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh("~");
 
   clins::publisher::SetPublisher(nh);
-
   std::string package_name = "clins";
   std::string package_path = ros::package::getPath(package_name);
-
   std::string config_name;
   nh.param<std::string>("config_name", config_name, "/config/ct_odometry.yaml");
 

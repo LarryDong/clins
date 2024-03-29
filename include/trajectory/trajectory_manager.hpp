@@ -64,7 +64,7 @@ class TrajectoryManager {
   }
 
   void InitIMUData(double feature_time) {
-    double traj_start_time;
+    volatile double traj_start_time;
     for (size_t i = imu_data_.size() - 1; i >= 0; i--) {
       if (imu_data_[i].timestamp <= feature_time) {
         traj_start_time = imu_data_[i].timestamp;
@@ -88,7 +88,8 @@ class TrajectoryManager {
     //              << std::endl;
     trajectory_->setDataStartTime(traj_start_time);
     imu_state_estimator_->SetFirstIMU(imu_data_.front());
-    for (size_t i = 1; i < imu_data_.size(); i++) {
+    // for (size_t i = 1; i < imu_data_.size(); i++) {     //~ ISSUE: why i=1??
+    for (size_t i = 0; i < imu_data_.size(); i++) { 
       imu_state_estimator_->FeedIMUData(imu_data_[i]);
     }
     trajectory_init_ = true;
@@ -170,8 +171,7 @@ void TrajectoryManager<_N>::SetPriorCorrespondence() {
 }
 
 template <int _N>
-void TrajectoryManager<_N>::AddStartTimePose(
-    std::shared_ptr<TrajectoryEstimator<_N>> estimator) {
+void TrajectoryManager<_N>::AddStartTimePose(std::shared_ptr<TrajectoryEstimator<_N>> estimator) {
   size_t kont_idx = trajectory_->computeTIndex(cor_min_time_).second;
   if (kont_idx < _N) {
     init_pose.timestamp = trajectory_->minTime();
@@ -183,9 +183,7 @@ void TrajectoryManager<_N>::AddStartTimePose(
 }
 
 template <int _N>
-bool TrajectoryManager<_N>::BuildProblemAndSolve(
-    const Eigen::aligned_vector<PointCorrespondence>& point_measurement,
-    int iteration) {
+bool TrajectoryManager<_N>::BuildProblemAndSolve(const Eigen::aligned_vector<PointCorrespondence>& point_measurement,int iteration) {
   if (point_measurement.empty() || imu_data_.empty()) {
     std::cout << "[BuildProblemAndSolve] input empty data "
               << point_measurement.size() << ", " << imu_data_.size()
@@ -193,9 +191,7 @@ bool TrajectoryManager<_N>::BuildProblemAndSolve(
     return false;
   }
 
-  std::shared_ptr<TrajectoryEstimator<_N>> estimator =
-      std::make_shared<TrajectoryEstimator<_N>>(trajectory_, calib_param_);
-
+  std::shared_ptr<TrajectoryEstimator<_N>> estimator = std::make_shared<TrajectoryEstimator<_N>>(trajectory_, calib_param_);
 
   double feature_weight = calib_param_->global_opt_lidar_weight;
   double gyro_weight = calib_param_->global_opt_gyro_weight;
@@ -215,20 +211,20 @@ bool TrajectoryManager<_N>::BuildProblemAndSolve(
   for (const auto& v : imu_data_) {
     if (v.timestamp >= cor_max_time_) break;
     //    estimator->AddIMUMeasurement(v, gyro_weight, accel_weight);
-    estimator->AddIMUBiasMeasurement(v, imu_bias, gyro_weight, accel_weight,
-                                     bias_weight);
+    estimator->AddIMUBiasMeasurement(v, imu_bias, gyro_weight, accel_weight, bias_weight);
   }
 
-  if (use_imu_orientation_) {
-    if (imu_data_.size() > 2) {
-      IMUData ref_imu_data = imu_data_.front();
-      for (size_t i = 1; i < imu_data_.size(); i++) {
-        if (imu_data_[i].timestamp >= cor_max_time_) break;
-        estimator->AddIMUDeltaOrientationMeasurement(ref_imu_data, imu_data_[i],
-                                                     gyro_weight);
-      }
-    }
-  }
+  //~ Not used
+  // if (use_imu_orientation_) {
+  //   if (imu_data_.size() > 2) {
+  //     IMUData ref_imu_data = imu_data_.front();
+  //     for (size_t i = 1; i < imu_data_.size(); i++) {
+  //       if (imu_data_[i].timestamp >= cor_max_time_) break;
+  //       estimator->AddIMUDeltaOrientationMeasurement(ref_imu_data, imu_data_[i],
+  //                                                    gyro_weight);
+  //     }
+  //   }
+  // }
 
   //  double lambda = 1.0;
   //  Eigen::Matrix3d a2_weight = lambda * Eigen::Matrix3d::Identity();
@@ -258,16 +254,14 @@ void TrajectoryManager<_N>::UpdateTrajectoryProperty() {
   trajectory_->UpdateActiveTime(cor_max_time_);
   trajectory_->SetForcedFixedTime(cor_min_time_ - 0.1);
 
-  TrajectoryViewer::PublishSplineTrajectory<4>(
-      trajectory_, trajectory_->minTime(), cor_max_time_, 0.02);
+  TrajectoryViewer::PublishSplineTrajectory<4>(trajectory_, trajectory_->minTime(), cor_max_time_, 0.02);
 
   cache_imu_bias_.push_back(
       std::make_pair(cor_min_time_, calib_param_->GetIMUBias()));
 }
 
 template <int _N>
-void TrajectoryManager<_N>::IntegrateIMUMeasurement(double scan_time_min,
-                                                    double scan_time_max) {
+void TrajectoryManager<_N>::IntegrateIMUMeasurement(double scan_time_min,double scan_time_max) {
   if (imu_data_.empty()) {
     std::cout << "[IntegrateIMUMeasurement] IMU data empty! " << std::endl;
     return;
@@ -305,16 +299,17 @@ void TrajectoryManager<_N>::IntegrateIMUMeasurement(double scan_time_min,
     estimator->AddIMUMeasurement(v, gyro_weight, accel_weight);
   }
 
-  if (use_imu_orientation_) {
-    if (imu_data_.size() > 2) {
-      IMUData ref_imu_data = imu_data_.front();
-      for (size_t i = 1; i < imu_data_.size(); i++) {
-        if (imu_data_[i].timestamp >= cor_max_time_) break;
-        estimator->AddIMUDeltaOrientationMeasurement(ref_imu_data, imu_data_[i],
-                                                     gyro_weight);
-      }
-    }
-  }
+  //~ Not used
+  // if (use_imu_orientation_) {
+  //   if (imu_data_.size() > 2) {
+  //     IMUData ref_imu_data = imu_data_.front();
+  //     for (size_t i = 1; i < imu_data_.size(); i++) {
+  //       if (imu_data_[i].timestamp >= cor_max_time_) break;
+  //       estimator->AddIMUDeltaOrientationMeasurement(ref_imu_data, imu_data_[i],
+  //                                                    gyro_weight);
+  //     }
+  //   }
+  // }
 
   //  double lambda = 1.0;
   //  Eigen::Matrix3d a2_weight = lambda * Eigen::Matrix3d::Identity();
@@ -335,8 +330,8 @@ void TrajectoryManager<_N>::IntegrateIMUMeasurement(double scan_time_min,
   ceres::Solver::Summary summary = estimator->Solve(50, false);
 
   //  TrajectoryViewer::PublishIMUData<4>(trajectory_, imu_data_);
-  TrajectoryViewer::PublishSplineTrajectory<4>(
-      trajectory_, trajectory_->minTime(), scan_time_max, 0.02);
+  TrajectoryViewer::PublishSplineTrajectory<4>(trajectory_, trajectory_->minTime(), scan_time_max, 0.02);
+  ROS_INFO("Trajectory published");
 }
 
 template <int _N>
@@ -383,8 +378,7 @@ void TrajectoryManager<_N>::OptimiseLoopClosure(
 
   ceres::Solver::Summary summary = estimator->Solve(100, true);
 
-  TrajectoryViewer::PublishSplineTrajectory<4>(
-      trajectory_, trajectory_->minTime(), trajectory_->maxTime(), 0.02);
+  TrajectoryViewer::PublishSplineTrajectory<4>(trajectory_, trajectory_->minTime(), trajectory_->maxTime(), 0.02);
 }
 
 }  // namespace clins

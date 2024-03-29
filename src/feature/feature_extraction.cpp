@@ -19,6 +19,7 @@
 
 #include <feature/feature_extraction.h>
 #include <rosbag/bag.h>
+#include <ros/ros.h>
 
 using namespace std;
 
@@ -33,17 +34,23 @@ FeatureExtraction::FeatureExtraction(const YAML::Node& node) {
   surf_threshold = node["surf_threshold"].as<float>();
   odometry_surface_leaf_size = node["odometry_surface_leaf_size"].as<float>();
 
-  undistort_scan_before_extraction_ =
-      node["undistort_scan_before_extraction"].as<bool>();
+  undistort_scan_before_extraction_ = node["undistort_scan_before_extraction"].as<bool>();
   min_distance_ = node["min_distance"].as<double>();
   max_distance_ = node["max_distance"].as<double>();
 
   use_corner_feature_ = node["use_corner_feature"].as<bool>();
 
+  //~ pub features;
+  pub_feature_cloud = nh.advertise<sensor_msgs::PointCloud2>("/feature_cloud", 10);
+  pub_corner_cloud = nh.advertise<sensor_msgs::PointCloud2>("/feature_corner_cloud", 10);
+  pub_surface_cloud = nh.advertise<sensor_msgs::PointCloud2>("/feature_surf_cloud", 10);
+  pub_full_cloud = nh.advertise<sensor_msgs::PointCloud2>("/full_cloud", 10);
+
   AllocateMemory();
   ResetParameters();
 }
 
+//~ Not using this Function.
 void FeatureExtraction::LidarHandler(
     const sensor_msgs::PointCloud2::ConstPtr& lidar_msg) {
   if (!CachePointCloud(lidar_msg)) return;
@@ -58,15 +65,47 @@ void FeatureExtraction::LidarHandler(
 void FeatureExtraction::LidarHandler(RTPointCloud::Ptr raw_cloud,
                                      RTPointCloud::Ptr undistort_cloud) {
   if (undistort_scan_before_extraction_)
-    ProjectPointCloud(raw_cloud, undistort_cloud, range_mat, p_raw_cloud,
-                      p_full_cloud);
+    ProjectPointCloud(raw_cloud, undistort_cloud, range_mat, p_raw_cloud, p_full_cloud);
   else
     ProjectPointCloud(raw_cloud, range_mat, p_full_cloud);
+  
+  // cv::Mat norm_img, gray_img, range_tmp;
+  // range_tmp = range_mat.clone();
+  
+  //   for (int i = 0; i < range_tmp.rows; i++) {
+  //     for (int j = 0; j < range_tmp.cols; j++) {
+  //         if (range_tmp.at<float>(i, j) > 500) {
+  //             range_tmp.at<float>(i, j) = 0;
+  //         }
+  //     }
+  // }
+
+  // cv::normalize(range_tmp, norm_img, 0, 255, cv::NORM_MINMAX);
+  // norm_img.convertTo(gray_img, CV_8U);
+
+  // double minVal, maxVal;
+  // cv::minMaxLoc(range_mat, &minVal, &maxVal); // Find minimum and maximum values
+  // ROS_INFO_STREAM("range_mat, min: "<< minVal  <<", max: "<< maxVal);
+
+  // cv::minMaxLoc(range_tmp, &minVal, &maxVal); // Find minimum and maximum values
+  // ROS_INFO_STREAM("range_tmp, min: "<< minVal  <<", max: "<< maxVal);
+
+  // cv::minMaxLoc(norm_img, &minVal, &maxVal); // Find minimum and maximum values
+  // ROS_INFO_STREAM("norm_img, min: "<< minVal  <<", max: "<< maxVal);
+
+  // cv::minMaxLoc(gray_img, &minVal, &maxVal); // Find minimum and maximum values
+  // ROS_INFO_STREAM("gray_img, min: "<< minVal  <<", max: "<< maxVal);
+
+  // cv::imshow("range_mat", gray_img);
+  // cv::waitKey(1);
+  // cv::waitKey(0);
+
 
   CloudExtraction();
   CaculateSmoothness();
   MarkOccludedPoints();
   ExtractFeatures();
+  PublishCloud("map");
   ResetParameters();
 }
 
@@ -172,7 +211,7 @@ void FeatureExtraction::ProjectOrganizedCloud(
     RTPointCloud::Ptr corresponding_cloud) {
   assert(cur_cloud->isOrganized() && cur_cloud->height == 16 &&
          cur_cloud->width ==
-             1824 "[ProjectOrganizedCloud] input cloud should be organized");
+             1824 && "[ProjectOrganizedCloud] input cloud should be organized");
 
   for (size_t column_id = 0; column_id < cur_cloud->width; ++column_id) {
     for (size_t row_id = 0; row_id < cur_cloud->height; ++row_id) {
@@ -458,11 +497,12 @@ void FeatureExtraction::PublishCloud(std::string frame_id) {
 
   pub_feature_cloud.publish(feature_msg);
 
-  if (pub_corner_cloud.getNumSubscribers() != 0)
+  // if (pub_corner_cloud.getNumSubscribers() != 0)
     pub_corner_cloud.publish(corner_msg);
-  if (pub_surface_cloud.getNumSubscribers() != 0)
+  // if (pub_surface_cloud.getNumSubscribers() != 0)
     pub_surface_cloud.publish(surface_msg);
-  if (pub_full_cloud.getNumSubscribers() != 0) pub_full_cloud.publish(full_msg);
+  // if (pub_full_cloud.getNumSubscribers() != 0) 
+  pub_full_cloud.publish(full_msg);
 
   //    rosbag::Bag bagWrite;
   //    bagWrite.open("/home/ha/rosbag/liso-bag/simu_bag/sim_feature.bag",

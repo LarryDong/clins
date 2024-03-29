@@ -186,15 +186,14 @@ void Trajectory<_N>::UndistortScan(double scan_timestamp,
   for (auto const &raw_p : scan_raw.points) {
     if (pcl_isnan(raw_p.x)) {
       scan_in_target.is_dense = false;
-      std::cout << RED << "[UndistortScan] input cloud exists NAN point\n"
-                << RESET;
+      std::cout << RED << "[UndistortScan] input cloud exists NAN point\n" << RESET;
       continue;
     }
     SE3d pose_Lk_to_G = GetLidarPose(scan_timestamp + raw_p.time);
 
     Eigen::Vector3d p_Lk(raw_p.x, raw_p.y, raw_p.z);
     Eigen::Vector3d point_out;
-    point_out = pose_G_to_target * pose_Lk_to_G * p_Lk;
+    point_out = pose_G_to_target * pose_Lk_to_G * p_Lk;   //~ eq(5)
 
     RTPoint point;
     point.x = point_out(0);

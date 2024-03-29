@@ -5,8 +5,8 @@ project(clins)
 #set(CMAKE_CXX_FLAGS "-ftemplate-backtrace-limit=0  -march=${CXX_MARCH} -O3 -DBASALT_USE_CHOLMOD -DBASALT_DISABLE_ASSERTS -DNDEBUG")
 #set(CMAKE_CXX_FLAGS " -march=${CXX_MARCH} -O3")
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_BUILD_TYPE "RELEASE")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -msse4.2")
+set(CMAKE_BUILD_TYPE "DEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -msse4.2")
 #add_definitions(-O3 -msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
 
 find_package(OpenMP)
@@ -76,6 +76,7 @@ include_directories(
   ${EIGEN3_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
+  /home/larrydong/clins_ws/src/Sophus
 )
 
 # Set link libraries used by all binaries
@@ -86,6 +87,7 @@ list(APPEND thirdparty_libraries
         ${OpenCV_LIBS}
         ${YAML_CPP_LIBRARIES}
         ceres
+        fmt
 )
 
 ################# Node ###################
@@ -93,19 +95,19 @@ list(APPEND thirdparty_libraries
 add_executable(feature_extraction_node
                src/feature/feature_extraction_node.cpp
                src/feature/feature_extraction.cpp)
-target_link_libraries(feature_extraction_node  ${thirdparty_libraries})
+target_link_libraries(feature_extraction_node  ${thirdparty_libraries} yaml-cpp)
 add_dependencies(feature_extraction_node  ${PROJECT_NAME}_generate_messages_cpp)
 
 add_executable(clins_offline_node src/node/clins_offline_node.cpp
                                   src/odometry/inertial_initializer.cpp
                                   src/odometry/imu_state_estimator.cpp
                                   src/feature/feature_extraction.cpp)
-target_link_libraries(clins_offline_node ${thirdparty_libraries})
+target_link_libraries(clins_offline_node ${thirdparty_libraries} yaml-cpp)
 add_dependencies(clins_offline_node  ${PROJECT_NAME}_generate_messages_cpp)
 
-add_executable(kaist_sick_map_generation
-               src/node/kaist_sick_map_generation.cpp)
-target_link_libraries(kaist_sick_map_generation  ${thirdparty_libraries})
+# add_executable(kaist_sick_map_generation
+#                src/node/kaist_sick_map_generation.cpp)
+# target_link_libraries(kaist_sick_map_generation  ${thirdparty_libraries})
 
 add_executable(recovery_vlp16_timestamp src/node/recovery_vlp16_timestamp.cpp)
 target_link_libraries(recovery_vlp16_timestamp ${catkin_LIBRARIES} ${PCL_LIBRARIES})

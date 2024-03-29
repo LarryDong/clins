@@ -71,26 +71,38 @@ void RecoverVLP16Timestamp(const VPointCloud::Ptr input_cloud,
   double max_horizon_angle = 0;
   bool rot_half = false;
 
+  std::cout << "New cloud" << std::endl;
   for (size_t i = 0; i < input_cloud->size(); i++) {
     VPoint raw_point = input_cloud->points[i];
-    if (!pcl_isfinite(raw_point.x)) continue;
-    double depth = sqrt(raw_point.x * raw_point.x + raw_point.y * raw_point.y +
-                        raw_point.z * raw_point.z);
-    if (depth == 0) continue;
+    if (!pcl_isfinite(raw_point.x)) 
+      continue;
+    double depth = sqrt(raw_point.x * raw_point.x + raw_point.y * raw_point.y + raw_point.z * raw_point.z);
+    if (depth == 0) 
+      continue;
     double pitch = asin(raw_point.z / depth) / M_PI * 180.0;
 
     int ring = std::round((pitch - lidar_fov_down) / lidar_fov_resolution);
-    if (ring < 0 || ring >= 16) continue;
+    using namespace std;
+    cout << "ring: " << ring <<endl;
+    if (ring < 0 || ring >= 16) 
+      continue;
 
-    double horizon_angle = atan2(raw_point.y, -raw_point.x) / M_PI * 180.0;
+    double horizon_angle = atan2(raw_point.y, raw_point.x) / M_PI * 180.0;  //~ -179 
     if (i == 0) {
       first_horizon_angle = horizon_angle;
     }
-    horizon_angle -= first_horizon_angle;
-    if (horizon_angle < 0) rot_half = true;
-    if (rot_half) horizon_angle += 360;
+    // horizon_angle -= first_horizon_angle;
+    // if (horizon_angle < 0) 
+    //   rot_half = true;
+    // if (rot_half) 
+    //   horizon_angle += 360;
+    if(horizon_angle > 0)
+      rot_half = true;
+    horizon_angle += 180;
     int firing = round(horizon_angle / 0.2);
-    if (firing < 0 || firing >= 1824) continue;
+    cout << "Angle: " << horizon_angle << endl;
+    if (firing < 0 || firing >= 1824) 
+      continue;
     double point_time = VLP16_time_block_[firing][ring];
 
     RTPoint p;
@@ -110,15 +122,15 @@ void RecoverVLP16Timestamp(const VPointCloud::Ptr input_cloud,
   static double required_size = full_size * 0.8;
 
   // if (output_cloud->size() < required_size && max_horizon_angle < 350) {
-  //   double percent = (double(output_cloud->size()) / full_size);
-  //   std::cout << "points percent[" << percent
-  //             << "] of /velodyne_points; horizon angle[" << max_horizon_angle
-  //             << "]\n";
+    double percent = (double(output_cloud->size()) / full_size);
+    std::cout << "points percent[" << percent
+              << "] of /velodyne_points; horizon angle[" << max_horizon_angle
+              << "]\n";
   // }
 }
 
 void recovery_vlp16_timestamp(std::string bag_path) {
-  std::string vlp16_points_topic = "/velodyne_points";
+  std::string vlp16_points_topic = "/lidar";
   std::string vlp16_points_recovery_topic = vlp16_points_topic + "_recovery";
 
   rosbag::Bag bag;
@@ -131,21 +143,20 @@ void recovery_vlp16_timestamp(std::string bag_path) {
   rosbag::View view_full;
   view_full.addQuery(bag);
   ros::Time time_init = view_full.getBeginTime();
-  view_.addQuery(bag, rosbag::TopicQuery(topics), time_init,
-                 view_full.getEndTime());
+  view_.addQuery(bag, rosbag::TopicQuery(topics), time_init, view_full.getEndTime());
 
-  for (const rosbag::MessageInstance& m : view_) {
-    if (m.getTopic() == vlp16_points_topic) {
-      auto lidar_msg = m.instantiate<sensor_msgs::PointCloud2>();
-      if (CheckMsgFields(*lidar_msg)) {
-        return;
-      } else {
-        std::cout << "\nTry to recovery timestamp of " << vlp16_points_topic
-                  << "\n\n";
-        break;
-      }
-    }
-  }
+  // for (const rosbag::MessageInstance& m : view_) {
+  //   if (m.getTopic() == vlp16_points_topic) {
+  //     auto lidar_msg = m.instantiate<sensor_msgs::PointCloud2>();
+  //     if (CheckMsgFields(*lidar_msg)) {
+  //       return;
+  //     } else {
+  //       std::cout << "\nTry to recovery timestamp of " << vlp16_points_topic
+  //                 << "\n\n";
+  //       break;
+  //     }
+  //   }
+  // }
 
   for (const rosbag::MessageInstance& m : view_) {
     ros::Time rosbag_time = m.getTime();
@@ -175,14 +186,15 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "recovery_vlp16_timestamp");
   ros::NodeHandle nh("~");
 
-  if (argc < 2) {
-    std::cerr << "Please input filepath of rosbag. For example \n\n"
-              << "rosrun clic recovery_vlp16_timestamp "
-                 "/home/user/rosbag/keylab01.bag\n";
+  // if (argc < 2) {
+  //   std::cerr << "Please input filepath of rosbag. For example \n\n"
+  //             << "rosrun clic recovery_vlp16_timestamp "
+  //                "/home/user/rosbag/keylab01.bag\n";
 
-    return 0;
-  }
-  std::string bag_path = argv[1];
+  //   return 0;
+  // }
+  // std::string bag_path = argv[1];
+  std::string bag_path = "/home/larrydong/Desktop/chrono/new.bag";
   recovery_vlp16_timestamp(bag_path);
   return 0;
 }

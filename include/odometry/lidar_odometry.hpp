@@ -332,8 +332,7 @@ bool LidarOdometry<_N>::UpdateOdometry() {
 
   ScanMatch();
 
-  TrajectoryViewer::PublishDenseCloud<4>(trajectory_, feature_map_ds_,
-                                         feature_cur_ds_);
+  TrajectoryViewer::PublishDenseCloud<4>(trajectory_, feature_map_ds_, feature_cur_ds_);
 
   UpdateKeyFrames();
 }
@@ -903,7 +902,8 @@ bool LidarOdometry<_N>::FindCorrespondence(
     matB0.fill(-1);
     matX0.setZero();
 
-    if (point_search_dis[4] < 1.0) {
+    // if (point_search_dis[4] < 1.0) {
+    if (point_search_dis[4] < 2.0) {        // TODO: Changed value
       for (int j = 0; j < 5; j++) {
         matA0(j, 0) =
             feature_map_ds_.surface_features->points[point_search_id[j]].x;
@@ -927,16 +927,10 @@ bool LidarOdometry<_N>::FindCorrespondence(
 
       bool planeValid = true;
       for (int j = 0; j < 5; j++) {
-        if (fabs(pa * feature_map_ds_.surface_features
-                          ->points[point_search_id[j]]
-                          .x +
-                 pb * feature_map_ds_.surface_features
-                          ->points[point_search_id[j]]
-                          .y +
-                 pc * feature_map_ds_.surface_features
-                          ->points[point_search_id[j]]
-                          .z +
-                 pd) > 0.2) {
+        if (fabs(pa * feature_map_ds_.surface_features->points[point_search_id[j]].x +
+                 pb * feature_map_ds_.surface_features->points[point_search_id[j]].y +
+                //  pc * feature_map_ds_.surface_features->points[point_search_id[j]].z +pd) > 0.2) {    //~ TODO: point to plan distance.
+                 pc * feature_map_ds_.surface_features->points[point_search_id[j]].z +pd) > 1.0) {    //~ TODO: point to plan distance.
           planeValid = false;
           break;
         }

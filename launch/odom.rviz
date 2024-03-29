@@ -4,8 +4,12 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Axes1
         - /trajectory1
         - /lidar_cloud1
+        - /lidar_cloud1/target_dense_cloud1
+        - /lidar_cloud1/source_dense_cloud1
+        - /Loop_Closure1
       Splitter Ratio: 0.7058823704719543
     Tree Height: 590
   - Class: rviz/Selection
@@ -54,9 +58,9 @@ Visualization Manager:
       Value: true
     - Class: rviz/Axes
       Enabled: true
-      Length: 5
+      Length: 2
       Name: Axes
-      Radius: 1
+      Radius: 0.4000000059604645
       Reference Frame: lidar
       Value: true
     - Class: rviz/Group
@@ -99,9 +103,7 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: key_pose
           Position Transformer: XYZ
           Queue Size: 10
@@ -121,21 +123,19 @@ Visualization Manager:
         - Alpha: 0.30000001192092896
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 78.1696548461914
-            Min Value: -20.384029388427734
+            Max Value: 15.378610610961914
+            Min Value: -5.841969966888428
             Value: true
           Axis: Z
           Channel Name: intensity
           Class: rviz/PointCloud2
           Color: 255; 255; 255
           Color Transformer: AxisColor
-          Decay Time: 5
+          Decay Time: 20
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: target_dense_cloud
           Position Transformer: XYZ
           Queue Size: 10
@@ -163,9 +163,7 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: source_dense_cloud
           Position Transformer: XYZ
           Queue Size: 10
@@ -197,9 +195,7 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: icp_source_cloud
           Position Transformer: XYZ
           Queue Size: 10
@@ -235,9 +231,7 @@ Visualization Manager:
           Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
-          Max Intensity: 4096
           Min Color: 0; 0; 0
-          Min Intensity: 0
           Name: icp_target_cloud
           Position Transformer: XYZ
           Queue Size: 10
@@ -288,25 +282,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 126.04279327392578
+      Distance: 44.52067184448242
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -5.8902716636657715
+        Y: 0.11659571528434753
+        Z: -4.644521713256836
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.544796347618103
+      Pitch: 1.3347965478897095
       Target Frame: lidar
       Value: Orbit (rviz)
-      Yaw: 4.713582992553711
+      Yaw: 5.308630466461182
     Saved: ~
 Window Geometry:
   Displays:
@@ -324,5 +318,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1440
-  X: 315
-  Y: 0
+  X: -63
+  Y: 270

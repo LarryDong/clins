@@ -124,7 +124,7 @@ class OdometryHelper {
   std::shared_ptr<ImuStateEstimator> imu_state_estimator_;
 
   // raw lidar cloud
-  RTPointCloud::Ptr raw_cloud_;
+  RTPointCloud::Ptr raw_cloud_;     //~ RTPointCloud: PointXYZIRT's PC
   // undistored lidar cloud
   RTPointCloud::Ptr undistort_cloud_;
 
@@ -141,7 +141,10 @@ OdometryHelper<_N>::OdometryHelper(const YAML::Node& node)
       raw_cloud_(new RTPointCloud),
       undistort_cloud_(new RTPointCloud) {
   /// load configuration from yaml
+
   knot_distance_ = node["knot_distance"].as<double>();
+
+
   imu_topic_ = node["imu_topic"].as<std::string>();
   lidar_topic_ = node["lidar_topic"].as<std::string>();
 
@@ -152,28 +155,31 @@ OdometryHelper<_N>::OdometryHelper(const YAML::Node& node)
   bool use_corner_feature = node["use_corner_feature"].as<bool>();
   bool use_imu_orientation_ = node["use_imu_orientation"].as<bool>();
 
+
+
+  //~ init different class in `OdometryHelper` by YAML configs.
   calib_param_ = std::make_shared<CalibParamManager>(node);
   trajectory_ = std::make_shared<Trajectory<_N>>(knot_distance_);
   trajectory_->SetCalibParam(calib_param_);
 
   imu_state_estimator_ = std::make_shared<ImuStateEstimator>(node);
-  trajectory_manager_ = std::make_shared<TrajectoryManager<_N>>(
-      trajectory_, calib_param_, imu_state_estimator_);
+  trajectory_manager_ = std::make_shared<TrajectoryManager<_N>>(trajectory_, calib_param_, imu_state_estimator_);
 
   trajectory_manager_->SetUseCornerFeature(use_corner_feature);
   trajectory_manager_->SetUseIMUOrientation(use_imu_orientation_);
 
+
   lidar_odom_ = std::make_shared<LidarOdometry<_N>>(node, trajectory_);
   lidar_odom_->SetTrajectoryManager(trajectory_manager_);
 
-  initializer_ = std::make_shared<OdomInitializer>(node);
 
+  initializer_ = std::make_shared<OdomInitializer>(node);
   feature_extraction_ = std::make_shared<FeatureExtraction>(node);
 
   pub_key_pose_ = nh_.advertise<sensor_msgs::PointCloud2>("key_poses", 10);
-  pub_loop_closure_marker_ = nh_.advertise<visualization_msgs::MarkerArray>(
-      "/loop_clousre_markers", 10);
+  pub_loop_closure_marker_ = nh_.advertise<visualization_msgs::MarkerArray>("/loop_clousre_markers", 10);
 
+  ROS_INFO("OdometryHelper 4");
   bag_path_ = node["bag_path"].as<std::string>();
   bag_start_ = node["bag_start"].as<double>();
   bag_durr_ = node["bag_durr"].as<double>();
@@ -203,6 +209,7 @@ void OdometryHelper<_N>::LiDARHandler(
   if (!is_initialized_) {
     if (TryToInitialize(scan_time)) {
       is_initialized_ = true;
+      ROS_INFO("--> Trajectory Inited. ");
     } else
       return;
   }
@@ -225,8 +232,7 @@ void OdometryHelper<_N>::LiDARHandler(
 
   // step3: Undistort Scan
   undistort_cloud_->clear();
-  trajectory_->UndistortScan(scan_time, *raw_cloud_, scan_time,
-                             *undistort_cloud_);
+  trajectory_->UndistortScan(scan_time, *raw_cloud_, scan_time, *undistort_cloud_);
 
   // step4: Extract lidar feature
   feature_extraction_->LidarHandler(raw_cloud_, undistort_cloud_);
@@ -346,11 +352,13 @@ void OdometryHelper<_N>::IMUHandler(const sensor_msgs::Imu::ConstPtr& imu_msg) {
   data.accel = Eigen::Vector3d(imu_msg->linear_acceleration.x,
                                imu_msg->linear_acceleration.y,
                                imu_msg->linear_acceleration.z);
-  if (use_imu_orientation_) {
-    data.orientation = SO3d(
-        Eigen::Quaterniond(imu_msg->orientation.w, imu_msg->orientation.x,
-                           imu_msg->orientation.y, imu_msg->orientation.z));
-  }
+
+  //~ Not used
+  // if (use_imu_orientation_) {
+  //   data.orientation = SO3d(
+  //       Eigen::Quaterniond(imu_msg->orientation.w, imu_msg->orientation.x,
+  //                          imu_msg->orientation.y, imu_msg->orientation.z));
+  // }
   if (!is_initialized_) {
     initializer_->FeedIMUData(data);
   }
@@ -389,6 +397,7 @@ void OdometryHelper<_N>::LidarSpinOffline() {
     return;
   }
 
+  int lidar_cnt = 0;
   ros::Rate rate(5);
   for (const rosbag::MessageInstance& m : view_) {
     ros::Time ros_bag_time = m.getTime();
@@ -403,6 +412,7 @@ void OdometryHelper<_N>::LidarSpinOffline() {
         if (delta_time < 0.08) {
           std::cout << " Delta Time : " << delta_time << std::endl;
         }
+        ROS_INFO_STREAM("Lidar scan cnt: "<<lidar_cnt++);
         LiDARHandler(lidar_msg);
       } else if (m.getDataType() == std::string("velodyne_msgs/VelodyneScan")) {
         auto lidar_msg = m.instantiate<velodyne_msgs::VelodyneScan>();
